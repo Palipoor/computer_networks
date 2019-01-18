@@ -181,182 +181,194 @@ from struct import *
 
 
 class Packet:
-    def __init__(self, buf):
-        """
-        The decoded buffer should convert to a new packet.
+	def __init__(self, buf):
+		"""
+		The decoded buffer should convert to a new packet.
 
-        :param buf: Input buffer was just decoded.
-        :type buf: bytearray
-        """
-        pass
+		:param buf: Input buffer was just decoded.
+		:type buf: bytearray
+		"""
+		self.length = self.__get_body_length(buf)
+		whole_length = self.length + 20
+		pack_format = f'hhiqi{whole_length}s'
+		self.version, self.type, _, self.source_ip, self.source_port, self.body = unpack(pack_format, buf)
+		self.body = self.body.decod('utf-8')
 
-    def get_header(self):
-        """
+	def __get_body_length(self, buf):
+		"""
+		:param buf: the input buffer for initiating packet
+		:return: length of packet's body
+		:rtype: int
+		"""
+		return unpack('i', buf[4:8])[0]
 
-        :return: Packet header
-        :rtype: str
-        """
-        pass
+	def get_header(self):
+		"""
 
-    def get_version(self):
-        """
+		:return: Packet header
+		:rtype: str
+		"""
+		pass
 
-        :return: Packet Version
-        :rtype: int
-        """
-        pass
+	def get_version(self):
+		"""
 
-    def get_type(self):
-        """
+		:return: Packet Version
+		:rtype: int
+		"""
+		pass
 
-        :return: Packet type
-        :rtype: int
-        """
-        pass
+	def get_type(self):
+		"""
 
-    def get_length(self):
-        """
+		:return: Packet type
+		:rtype: int
+		"""
+		pass
 
-        :return: Packet length
-        :rtype: int
-        """
-        pass
+	def get_length(self):
+		"""
 
-    def get_body(self):
-        """
+		:return: Packet length
+		:rtype: int
+		"""
+		pass
 
-        :return: Packet body
-        :rtype: str
-        """
-        pass
+	def get_body(self):
+		"""
 
-    def get_buf(self):
-        """
-        In this function, we will make our final buffer that represents the Packet with the Struct class methods.
+		:return: Packet body
+		:rtype: str
+		"""
+		pass
 
-        :return The parsed packet to the network format.
-        :rtype: bytearray
-        """
-        pass
+	def get_buf(self):
+		"""
+		In this function, we will make our final buffer that represents the Packet with the Struct class methods.
 
-    def get_source_server_ip(self):
-        """
+		:return The parsed packet to the network format.
+		:rtype: bytearray
+		"""
+		pass
 
-        :return: Server IP address for the sender of the packet.
-        :rtype: str
-        """
-        pass
+	def get_source_server_ip(self):
+		"""
 
-    def get_source_server_port(self):
-        """
+		:return: Server IP address for the sender of the packet.
+		:rtype: str
+		"""
+		pass
 
-        :return: Server Port address for the sender of the packet.
-        :rtype: str
-        """
-        pass
+	def get_source_server_port(self):
+		"""
 
-    def get_source_server_address(self):
-        """
+		:return: Server Port address for the sender of the packet.
+		:rtype: str
+		"""
+		pass
 
-        :return: Server address; The format is like ('192.168.001.001', '05335').
-        :rtype: tuple
-        """
-        pass
+	def get_source_server_address(self):
+		"""
+
+		:return: Server address; The format is like ('192.168.001.001', '05335').
+		:rtype: tuple
+		"""
+		pass
 
 
 class PacketFactory:
-    """
-    This class is only for making Packet objects.
-    """
+	"""
+	This class is only for making Packet objects.
+	"""
 
-    @staticmethod
-    def parse_buffer(buffer):
-        """
-        In this function we will make a new Packet from input buffer with struct class methods.
+	@staticmethod
+	def parse_buffer(buffer):
+		"""
+		In this function we will make a new Packet from input buffer with struct class methods.
 
-        :param buffer: The buffer that should be parse to a validate packet format
+		:param buffer: The buffer that should be parse to a validate packet format
 
-        :return new packet
-        :rtype: Packet
+		:return new packet
+		:rtype: Packet
 
-        """
-        pass
+		"""
+		pass
 
-    @staticmethod
-    def new_reunion_packet(type, source_address, nodes_array):
-        """
-        :param type: Reunion Hello (REQ) or Reunion Hello Back (RES)
-        :param source_address: IP/Port address of the packet sender.
-        :param nodes_array: [(ip0, port0), (ip1, port1), ...] It is the path to the 'destination'.
+	@staticmethod
+	def new_reunion_packet(type, source_address, nodes_array):
+		"""
+		:param type: Reunion Hello (REQ) or Reunion Hello Back (RES)
+		:param source_address: IP/Port address of the packet sender.
+		:param nodes_array: [(ip0, port0), (ip1, port1), ...] It is the path to the 'destination'.
 
-        :type type: str
-        :type source_address: tuple
-        :type nodes_array: list
+		:type type: str
+		:type source_address: tuple
+		:type nodes_array: list
 
-        :return New reunion packet.
-        :rtype Packet
-        """
-        pass
+		:return New reunion packet.
+		:rtype Packet
+		"""
+		pass
 
-    @staticmethod
-    def new_advertise_packet(type, source_server_address, neighbour=None):
-        """
-        :param type: Type of Advertise packet
-        :param source_server_address Server address of the packet sender.
-        :param neighbour: The neighbour for advertise response packet; The format is like ('192.168.001.001', '05335').
+	@staticmethod
+	def new_advertise_packet(type, source_server_address, neighbour=None):
+		"""
+		:param type: Type of Advertise packet
+		:param source_server_address Server address of the packet sender.
+		:param neighbour: The neighbour for advertise response packet; The format is like ('192.168.001.001', '05335').
 
-        :type type: str
-        :type source_server_address: tuple
-        :type neighbour: tuple
+		:type type: str
+		:type source_server_address: tuple
+		:type neighbour: tuple
 
-        :return New advertise packet.
-        :rtype Packet
+		:return New advertise packet.
+		:rtype Packet
 
-        """
-        pass
+		"""
+		pass
 
-    @staticmethod
-    def new_join_packet(source_server_address):
-        """
-        :param source_server_address: Server address of the packet sender.
+	@staticmethod
+	def new_join_packet(source_server_address):
+		"""
+		:param source_server_address: Server address of the packet sender.
 
-        :type source_server_address: tuple
+		:type source_server_address: tuple
 
-        :return New join packet.
-        :rtype Packet
+		:return New join packet.
+		:rtype Packet
 
-        """
-        pass
+		"""
+		pass
 
-    @staticmethod
-    def new_register_packet(type, source_server_address, address=(None, None)):
-        """
-        :param type: Type of Register packet
-        :param source_server_address: Server address of the packet sender.
-        :param address: If 'type' is 'request' we need an address; The format is like ('192.168.001.001', '05335').
+	@staticmethod
+	def new_register_packet(type, source_server_address, address=(None, None)):
+		"""
+		:param type: Type of Register packet
+		:param source_server_address: Server address of the packet sender.
+		:param address: If 'type' is 'request' we need an address; The format is like ('192.168.001.001', '05335').
 
-        :type type: str
-        :type source_server_address: tuple
-        :type address: tuple
+		:type type: str
+		:type source_server_address: tuple
+		:type address: tuple
 
-        :return New Register packet.
-        :rtype Packet
+		:return New Register packet.
+		:rtype Packet
 
-        """
-        pass
+		"""
+		pass
 
-    @staticmethod
-    def new_message_packet(message, source_server_address):
-        """
-        Packet for sending a broadcast message to the whole network.
+	@staticmethod
+	def new_message_packet(message, source_server_address):
+		"""
+		Packet for sending a broadcast message to the whole network.
 
-        :param message: Our message
-        :param source_server_address: Server address of the packet sender.
+		:param message: Our message
+		:param source_server_address: Server address of the packet sender.
 
-        :type message: str
-        :type source_server_address: tuple
+		:type message: str
+		:type source_server_address: tuple
 
-        :return: New Message packet.
-        :rtype: Packet
-        """
-        pass
+		:return: New Message packet.
+		:rtype: Packet
+		"""
+		pass
