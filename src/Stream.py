@@ -69,7 +69,6 @@ class Stream:
 
 		:return:
 		"""
-		#TODO set_Root?
 		self.nodes[server_address] = Node(server_address, set_register=set_register_connection)
 		pass
 

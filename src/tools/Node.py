@@ -2,7 +2,7 @@ from src.tools.simpletcp.clientsocket import ClientSocket
 
 
 class Node:
-    def __init__(self, server_address, set_root=False, set_register=False):
+    def __init__(self, server_address, set_register=False):
         """
         The Node object constructor.
 
@@ -22,7 +22,6 @@ class Node:
         #TODO try catch while initializing Node
         self.server_ip = Node.parse_ip(server_address[0])
         self.server_port = Node.parse_port(server_address[1])
-        #TODO set_root
         self.client_socket = ClientSocket(self.server_ip, self.server_port,single_use=set_register)
         print("Server Address: ", server_address)
 
