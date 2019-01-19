@@ -270,7 +270,7 @@ class Packet:
 		pack_format = pack_header_format + f'{self.length}s'
 		ip_1, ip_2, ip_3, ip_4 = parse_ip(self.source_ip)
 		return pack(pack_format, self.version, self.type, self.length, ip_1, ip_2, ip_3, ip_4, int(self.source_port),
-		            self.body.encode())
+					self.body.encode())
 
 	def get_source_server_ip(self):
 		"""
@@ -295,6 +295,12 @@ class Packet:
 		:rtype: tuple
 		"""
 		return self.source_ip, self.source_port
+
+	def is_reunion_hello(self):
+		return self.type == PacketType.REUNION and self.body.startswith('REQ')
+
+	def is_reunion_hello_back(self):
+		return self.type == PacketType.REUNION and self.body.startswith('RES')
 
 
 class PacketFactory:
@@ -351,7 +357,7 @@ class PacketFactory:
 			full_body_string = ''
 
 		return PacketFactory.__new_packet(VERSION, PacketType.REUNION, len(full_body_string), source_ip, source_port,
-		                                  body=full_body_string)
+										  body=full_body_string)
 
 	@staticmethod
 	def new_advertise_packet(type, source_server_address, neighbour=None):
@@ -393,7 +399,7 @@ class PacketFactory:
 		"""
 		body = 'JOIN'
 		return PacketFactory.__new_packet(VERSION, PacketType.JOIN, len(body), source_server_address[0],
-		                                  source_server_address[1], body)
+										  source_server_address[1], body)
 
 	@staticmethod
 	def new_register_packet(type, source_server_address, address=(None, None)):
@@ -436,4 +442,4 @@ class PacketFactory:
 		"""
 		body = message
 		return PacketFactory.__new_packet(VERSION, PacketType.MESSAGE, len(body), source_server_address[0],
-		                                  source_server_address[1], body)
+										  source_server_address[1], body)

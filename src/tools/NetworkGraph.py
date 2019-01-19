@@ -51,6 +51,12 @@ class NetworkGraph:
         pass
 
     def find_node(self, ip, port):
+        """
+		returns None if node is not in the graph
+        :param ip:
+        :param port:
+        :return:
+        """
         pass
 
     def turn_on_node(self, node_address):
