@@ -1,5 +1,6 @@
 from src.tools.simpletcp.tcpserver import TCPServer
-
+import traceback
+import sys
 from src.tools.Node import Node
 import threading
 
@@ -20,6 +21,7 @@ class Stream:
 
 		ip = Node.parse_ip(ip)
 		port = Node.parse_port(port)
+		self.nodes = {}
 
 		self._server_in_buf = []
 
@@ -67,6 +69,8 @@ class Stream:
 
 		:return:
 		"""
+		#TODO set_Root?
+		self.nodes[server_address] = Node(server_address, set_register=set_register_connection)
 		pass
 
 	def remove_node(self, node):
@@ -81,7 +85,10 @@ class Stream:
 
 		:return:
 		"""
-		pass
+		node.close()
+		address = (node.server_ip, node.server_port)
+		self.nodes.pop(address)
+
 
 	def get_node_by_server(self, ip, port):
 		"""
@@ -112,6 +119,11 @@ class Stream:
 
 		:return:
 		"""
+		try:
+			self.nodes[address].add_message_to_out_buff(message)
+		except Exception as identifier:
+			desired_trace = traceback.format_exc(sys.exc_info())
+			print(desired_trace)
 		pass
 
 	def read_in_buf(self):
@@ -136,7 +148,13 @@ class Stream:
 
 		:return:
 		"""
-		pass
+
+		try:
+			node.send_message()
+		except Exception as identifier:
+			desired_trace = traceback.format_exc(sys.exc_info())
+			print(desired_trace)
+		
 
 	def send_out_buf_messages(self, only_register=False):
 		"""
@@ -144,4 +162,11 @@ class Stream:
 
 		:return:
 		"""
-		pass
+		#TODO find only register
+		for node in self.nodes:
+			try:
+				self.send_messages_to_node(node)
+			except Exception as identifier:
+				desired_trace = traceback.format_exc(sys.exc_info())
+				print(desired_trace)
+
