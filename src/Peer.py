@@ -58,8 +58,10 @@ class Peer:
 			reunion_thread = threading.Thread(target=self.run_reunion_daemon)
 			reunion_thread.start()
 		else:
-			# TODO درخواست رجیستر بده
-
+			self.root_address = root_address
+			self.stream.add_node(self.root_address, True)
+			reg_packet = PacketFactory.new_register_packet("REQ", self.address)
+			self.stream.add_message_to_out_buff(self.root_address, reg_packet)
 			self.stream.add_node(self.address, True)
 
 	def start_user_interface(self):
@@ -119,19 +121,26 @@ class Peer:
 		:return:
 		"""
 		# FIXME cast bytearray
+		four_seconds = 0
 		while True:
-			if not self.reunion_timeout:
-				input_buffer = self.stream.read_in_buf()
-				for buf in input_buffer:
-					packet = Packet(buf)
-					self.handle_packet(packet)
+			if not self.is_root:
+				if not self.reunion_timeout:
+					input_buffer = self.stream.read_in_buf()
+					for buf in input_buffer:
+						packet = Packet(buf)
+						self.handle_packet(packet)
 
-				self.handle_user_interface_buffer()
-				self.stream.send_out_buf_messages()
-				time.sleep(2)
+					self.handle_user_interface_buffer()
+					self.stream.send_out_buf_messages()
 
-			else:
-				pass  # TODO try to join the network again
+					four_seconds = 1 - four_seconds
+					if four_seconds == 0:
+						pass #TODO send reunion
+
+					time.sleep(2)
+
+				else:
+					pass  # TODO try to join the network again
 
 	def run_reunion_daemon(self):
 		"""
@@ -341,7 +350,6 @@ class Peer:
 			else:
 				packet.body = packet.body[:-20]
 				self.send_broadcast_packet(packet)
-
 
 	def __handle_join_packet(self, packet):
 		"""
