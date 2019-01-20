@@ -70,6 +70,7 @@ class Stream:
 		:return:
 		"""
 		self.nodes[server_address] = Node(server_address, set_register=set_register_connection)
+		return self.nodes[server_address]
 
 
 	def remove_node(self, node):
