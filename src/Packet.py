@@ -191,7 +191,7 @@ class PacketType:
 
 
 VERSION = 1
-pack_header_format = 'h h i h h h h i'
+pack_header_format = 'h h i h h h h i '
 
 
 class Packet:
@@ -209,8 +209,8 @@ class Packet:
 		self.body = self.body.decode('utf-8')
 		self.source_ip = str(ip_1).zfill(3) + '.' + str(ip_2).zfill(3) + '.' + str(ip_3).zfill(3) + '.' + str(
 			ip_4).zfill(3)
-		self.source_port = str(port)
-		self.header = str(self.version) + str(self.type) + str(self.length) + self.source_ip + self.source_port
+		self.source_port = str(port).zfill(5)
+		self.header = str(self.version) + str(self.type) + str(self.length) + self.source_ip + self.source_port #FIXME problem of non-consistent storing addreses! check in peer too.
 
 	def __get_body_length(self, buf):
 		"""
@@ -316,6 +316,7 @@ class PacketFactory:
 		ip_1, ip_2, ip_3, ip_4 = parse_ip(source_ip)
 		port = int(source_port)
 		packet_format = pack_header_format + f'{length}s'
+		body = bytes(body, encoding='utf-8')
 		buf = pack(packet_format, version, type, length, ip_1, ip_2, ip_3, ip_4, port, body)
 		packet = Packet(buf)
 		return packet
@@ -382,6 +383,8 @@ class PacketFactory:
 		if type == 'REQ':
 			body = 'REQ'
 		elif type == 'RES':
+			if neighbour is None:
+				return None
 			neighbour_ip, neighbour_port = neighbour
 			body = 'RES' + neighbour_ip + neighbour_port
 		else:
@@ -421,7 +424,7 @@ class PacketFactory:
 		"""
 		source_ip, source_port = source_server_address
 		if type == 'REQ':
-			body = 'REQ' + address[0] + address[1]
+			body ='REQ' + address[0] + address[1]
 		elif type == 'RES':
 			body = 'RESACK'
 		else:
@@ -446,3 +449,4 @@ class PacketFactory:
 		body = message
 		return PacketFactory.__new_packet(VERSION, PacketType.MESSAGE, len(body), source_server_address[0],
 										  source_server_address[1], body)
+
