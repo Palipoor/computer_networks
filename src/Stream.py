@@ -69,9 +69,11 @@ class Stream:
 
 		:return:
 		"""
-		self.nodes[server_address] = Node(server_address, set_register=set_register_connection)
-		return self.nodes[server_address]
-
+		try:
+			self.nodes[server_address] = Node(server_address, set_register=set_register_connection)
+			return self.nodes[server_address]
+		except:
+			return None
 
 	def remove_node(self, node):
 		"""
@@ -88,7 +90,6 @@ class Stream:
 		node.close()
 		address = (node.server_ip, node.server_port)
 		self.nodes.pop(address)
-
 
 	def get_node_by_server(self, ip, port):
 		"""
@@ -154,7 +155,6 @@ class Stream:
 		except Exception as identifier:
 			desired_trace = traceback.format_exc(sys.exc_info())
 			print(desired_trace)
-		
 
 	def send_out_buf_messages(self, only_register=False):
 		"""
@@ -162,11 +162,17 @@ class Stream:
 
 		:return:
 		"""
-		#TODO find only register
 		for node in self.nodes:
-			try:
-				self.send_messages_to_node(node)
-			except Exception as identifier:
-				desired_trace = traceback.format_exc(sys.exc_info())
-				print(desired_trace)
-
+			if only_register:
+				if node.register:
+					try:
+						self.send_messages_to_node(node)
+					except Exception as e:
+						desired_trace = traceback.format_exc(sys.exc_info())
+						print(desired_trace)
+			else:
+				try:
+					self.send_messages_to_node(node)
+				except Exception as e:
+					desired_trace = traceback.format_exc(sys.exc_info())
+					print(desired_trace)

@@ -302,6 +302,9 @@ class Packet:
 	def is_reunion_hello_back(self):
 		return self.type == PacketType.REUNION and self.body.startswith('RES')
 
+	def get_first_address_hello_packet(self):
+		return (self.body[5:20], self.body[20:25])
+
 
 class PacketFactory:
 	"""
