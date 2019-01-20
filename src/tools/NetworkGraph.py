@@ -9,19 +9,46 @@ class GraphNode:
         :type address: tuple
 
         """
-        pass
+        self.address = address
+        self.parent = None
+        self.left_child = None
+        self.right_child = None
+
+    def get_children(self):
+        result = []
+        if not self.left_child:
+            result.append(self.left_child)
+        if not self.right_child:
+            result.append(self.right_child)
+        return result
+
 
     def set_parent(self, parent):
-        pass
+        self.parent = parent
 
     def set_address(self, new_address):
-        pass
+        self.address = new_address
 
     def __reset(self):
-        pass
+        self.address = None
+        self.left_child = None
+        self.right_child = None
+    
+    def can_have_child(self):
+        return not (self.left_child and self.right_child)
 
     def add_child(self, child):
-        pass
+        #returns success
+        if not self.left_child:
+            self.left_child = child
+            return True
+
+        if not self.right_child:
+            self.right_child = child
+            return True
+
+        return False
+
 
 
 class NetworkGraph:
@@ -48,7 +75,15 @@ class NetworkGraph:
         :return: Best neighbour for sender.
         :rtype: GraphNode
         """
-        pass
+        queue = [self.root]
+        while True:
+            head = queue[0]
+            queue = queue[1:]
+            if head.can_have_child():
+                return head
+            queue = queue + head.get_children()
+
+
 
     def find_node(self, ip, port):
         """
@@ -57,7 +92,16 @@ class NetworkGraph:
         :param port:
         :return:
         """
-        pass
+        address = (ip,port)
+        queue = [self.root]
+        #FIXME off nodes
+        while queue:
+            head = queue[0]
+            queue = queue[1:]
+            if head.address == address:
+                return head
+            queue = queue + head.get_children()
+        return None
 
     def turn_on_node(self, node_address):
         pass
@@ -66,7 +110,25 @@ class NetworkGraph:
         pass
 
     def remove_node(self, node_address):
-        pass
+        #returns None if hasn't find anything
+        if self.root.address == node_address:
+            temp = self.root
+            self.root = None
+            return temp
+        queue = [self.root]
+        while queue:
+            head = queue[0]
+            queue = queue[1:]
+            if head.right_child.address == node_address:
+                temp = head.right_child
+                head.right_child = None
+                return temp
+            if head.left_child.address == node_address:
+                temp = head.left_child
+                head.left_child = None
+                return temp
+            queue = queue + head.get_children()
+        return None
 
     def add_node(self, ip, port, father_address):
         """
@@ -87,4 +149,8 @@ class NetworkGraph:
 
         :return:
         """
-        pass
+        new_node = GraphNode((ip,port))
+        parent = self.find_node(ip, port)
+        new_node.set_parent(new_node)
+        parent.add_child(new_node)
+        
