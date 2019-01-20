@@ -2,7 +2,7 @@ from src.tools.simpletcp.clientsocket import ClientSocket
 
 
 class Node:
-    def __init__(self, server_address, set_root=False, set_register=False):
+    def __init__(self, server_address, set_register=False):
         """
         The Node object constructor.
 
