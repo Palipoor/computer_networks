@@ -91,21 +91,6 @@ class Stream:
 		address = (node.server_ip, node.server_port)
 		self.nodes.pop(address)
 
-	def get_node_by_server(self, ip, port):
-		"""
-
-		Will find the node that has IP/Port address of input.
-
-		Warnings:
-			1. Before comparing the address parse it to a standard format with Node.parse_### functions.
-
-		:param ip: input address IP
-		:param port: input address Port
-
-		:return: The node that input address.
-		:rtype: Node
-		"""
-		pass
 
 	def add_message_to_out_buff(self, address, message):
 		"""
@@ -122,7 +107,8 @@ class Stream:
 		"""
 		try:
 			self.nodes[address].add_message_to_out_buff(message)
-		except Exception as identifier:
+			print(f'Add message with type = {message.type} from  {message.get_source_server_address()}  to  {address} out buffer.')
+		except Exception as e:
 			desired_trace = traceback.format_exc(sys.exc_info())
 			print(desired_trace)
 		pass
@@ -152,7 +138,9 @@ class Stream:
 
 		try:
 			node.send_message()
-		except Exception as identifier:
+		except Exception as e:
+			node.out_buff.clear()
+			self.remove_node(node)
 			desired_trace = traceback.format_exc(sys.exc_info())
 			print(desired_trace)
 
@@ -162,6 +150,7 @@ class Stream:
 
 		:return:
 		"""
+
 		for node in self.nodes:
 			if only_register:
 				if node.register:
