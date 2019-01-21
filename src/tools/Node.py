@@ -21,7 +21,7 @@ class Node:
 		self.server_ip = Node.parse_ip(server_address[0])
 		self.server_port = Node.parse_port(server_address[1])
 		self.register = set_register
-		self.client_socket = ClientSocket(self.server_ip, int(self.server_port),single_use=set_register)
+		self.client_socket = ClientSocket(self.server_ip, int(self.server_port),single_use=False)
 
 		self.out_buff = []
 
@@ -33,8 +33,9 @@ class Node:
 		:return:
 		"""
 		for message in self.out_buff:
-
 			self.client_socket.send(message)
+
+		self.out_buff.clear()
 
 	def add_message_to_out_buff(self, message):
 		"""
@@ -43,7 +44,7 @@ class Node:
 		:param message: The message we want to add to out_buff
 		:return:
 		"""
-		self.out_buff.append(message)
+		self.out_buff.append(message.get_buf())
 
 	def close(self):
 		"""

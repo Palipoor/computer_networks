@@ -66,6 +66,7 @@ class Peer:
 			reunion_thread.start()
 		else:
 			self.root_address = root_address
+			print("Set root address! " + str(self.root_address))
 			self.stream.add_node(self.root_address, True)
 
 	def start_user_interface(self):
@@ -91,12 +92,15 @@ class Peer:
 		:return:
 		"""
 		for message in self.user_interface.buffer:
+			print('handling : ' + message)
 			if message == 'Register':
 				reg_packet = PacketFactory.new_register_packet("REQ", self.address, self.address)
 				self.send_packet(reg_packet, self.root_address)
+				self.stream.send_out_buf_messages(only_register=True)
 			elif message == 'Advertise':
 				advertise_packet = PacketFactory.new_advertise_packet(type="REQ", source_server_address=self.address)
 				self.send_advertise_packet(advertise_packet)
+				self.stream.send_out_buf_messages(only_register=True)
 			elif message.startswith('SendMessage'):
 				to_be_sent = message.split()[1]
 				message_packet = PacketFactory.new_message_packet(message=to_be_sent,
@@ -125,7 +129,6 @@ class Peer:
 
 		:return:
 		"""
-		# FIXME cast bytearray
 
 		while True:
 			if not self.is_root:
@@ -134,7 +137,7 @@ class Peer:
 					for buf in input_buffer:
 						packet = Packet(buf)
 						self.handle_packet(packet)
-
+					self.stream.clear_in_buff()
 					self.stream.send_out_buf_messages()
 				else:
 					input_buffer = self.stream.read_in_buf()
@@ -142,6 +145,7 @@ class Peer:
 						packet = Packet(buf)
 						if packet.type == PacketType.ADVERTISE:
 							self.__handle_advertise_packet(packet)
+					self.stream.clear_in_buff()
 				self.handle_user_interface_buffer()
 			else:
 				input_buffer = self.stream.read_in_buf()
@@ -149,6 +153,7 @@ class Peer:
 					packet = Packet(buf)
 					self.handle_packet(packet)
 
+				self.stream.clear_in_buff()
 				self.handle_user_interface_buffer()
 				self.stream.send_out_buf_messages()
 			time.sleep(2)
@@ -200,9 +205,10 @@ class Peer:
 					self.send_broadcast_packet(broadcast_packet=reunion_packet)
 					self.client_last_hello_time = time.time()
 					self.client_is_waiting_for_helloback = True
-				elif time.time() - self.client_last_hello_time >= self.client_reunion_timeout:
+				elif time.time() - self.client_last_hello_time >= self.client_timeout_threshold:
 					self.client_is_waiting_for_helloback = False
 					self.is_client_connected = False
+					self.client_predecessor_address = None
 					adv_pckt = PacketFactory.new_advertise_packet("REQ", self.address)
 					self.send_advertise_packet(adv_pckt)
 
@@ -226,14 +232,24 @@ class Peer:
 		:return:
 		"""
 		broadcast_packet = self.change_header(broadcast_packet)
+		print('Going to broadcast a Packet! type: ' + str(broadcast_packet.type))
 		if self.is_root:
 			for address in self.successors_address:
 				self.stream.add_message_to_out_buff(address, broadcast_packet)
 		else:
-			all_addreses = [self.client_predecessor_address] + self.successors_address
-			for address in all_addreses:
-				self.stream.add_message_to_out_buff(address,
-													broadcast_packet)
+			if broadcast_packet.is_reunion_hello() and self.successors_address:
+				self.stream.add_message_to_out_buff(self.successors_address, message=broadcast_packet)
+			elif broadcast_packet.is_reunion_hello_back():
+				for address in self.successors_address:
+					self.stream.add_message_to_out_buff(address,
+														broadcast_packet)
+			elif broadcast_packet.type == PacketType.MESSAGE:
+				all_addreses = [self.client_predecessor_address] + self.successors_address
+				for address in all_addreses:
+					self.stream.add_message_to_out_buff(address,
+														broadcast_packet)
+			else:
+				return
 
 	def handle_packet(self, packet):
 		"""
@@ -248,6 +264,8 @@ class Peer:
 		:type packet Packet
 
 		"""
+
+		print('Received a packet with type : ' + str(packet.type))
 		if packet.type == PacketType.REGISTER:
 			self.__handle_register_packet(packet)
 		elif packet.type == PacketType.MESSAGE:
@@ -258,6 +276,8 @@ class Peer:
 			self.__handle_join_packet(packet)
 		elif packet.type == PacketType.REUNION:
 			self.__handle_reunion_packet(packet)
+		else:
+			return
 
 	def __check_registered(self, source_address):
 		"""
@@ -305,17 +325,22 @@ class Peer:
 		if self.is_root:
 			sender_address = packet.get_source_server_address()
 			neighbour = self.__get_neighbour(sender_address)
+			self.network_graph.add_node(sender_address[0], sender_address[1], neighbour.address)
+			print("Someone has requested a neighbour")
+			print(str(neighbour.address))
 			if self.__check_registered(sender_address) and neighbour is not None:
 				adv_packet = PacketFactory.new_advertise_packet("RES", self.address, neighbour=neighbour.address)
-				self.send_packet(adv_packet,sender_address)
+				self.send_packet(adv_packet, sender_address)
 		elif packet.body.startswith('RES'):
 			reunion_thread = threading.Thread(target=self.run_reunion_daemon)
 			reunion_thread.start()
 			join_pckt = PacketFactory.new_join_packet(self.address)
-			self.client_predecessor_address = packet.get_source_server_address()
+			self.client_predecessor_address = (packet.body[-20:-5], packet.body[-5:])
+			print("I've found a father! " + str(self.client_predecessor_address))
 			self.send_packet(join_pckt, self.client_predecessor_address)
 			self.is_client_connected = True
-
+		else:
+			return
 
 	def __handle_register_packet(self, packet):
 		"""
@@ -414,7 +439,6 @@ class Peer:
 		address = packet.get_source_server_address()
 		self.successors_address.append(address)
 
-
 	def __get_neighbour(self, sender):
 		"""
 		Finds the best neighbour for the 'sender' from the network_nodes array.
@@ -431,6 +455,7 @@ class Peer:
 	def send_helloback(self, packet):
 		if not self.is_root:
 			return
+		print('Sending Hello back')
 		list_of_addreses = packet.body[5:]
 		new_list = []
 		for substring in divide_string(list_of_addreses, int(packet.body[3:5])):
@@ -444,6 +469,7 @@ class Peer:
 		self.send_broadcast_packet(packet)
 
 	def send_advertise_packet(self, advertise_packet):
+		print('Sending advertise packet!')
 		advertise_packet = self.change_header(advertise_packet)
 		self.send_packet(advertise_packet, self.root_address)
 
@@ -465,7 +491,7 @@ class Peer:
 		return latest_address == self.address
 
 	def change_header(self, packet):
-		packet.source_ip , new_source_port = self.address[0], self.address[1]
+		packet.source_ip, new_source_port = self.address[0], self.address[1]
 		packet = Packet(packet.get_buf())
 		return packet
 

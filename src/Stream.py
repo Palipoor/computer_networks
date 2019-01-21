@@ -91,7 +91,6 @@ class Stream:
 		address = (node.server_ip, node.server_port)
 		self.nodes.pop(address)
 
-
 	def add_message_to_out_buff(self, address, message):
 		"""
 		In this function, we will add the message to the output buffer of the node that has the input address.
@@ -107,7 +106,8 @@ class Stream:
 		"""
 		try:
 			self.nodes[address].add_message_to_out_buff(message)
-			print(f'Add message with type = {message.type} from  {message.get_source_server_address()}  to  {address} out buffer.')
+			print(
+				f'Add message with type = {message.type} from  {message.get_source_server_address()}  to  {address} out buffer.')
 		except Exception as e:
 			# desired_trace = traceback.format_exc(sys.exc_info())
 			print('Problem with sending message!' + message.body)
@@ -139,10 +139,9 @@ class Stream:
 		try:
 			node.send_message()
 		except Exception as e:
+			print("Error sending message to node " + str(node.get_server_address()))
 			node.out_buff.clear()
-			self.remove_node(node)
-			desired_trace = traceback.format_exc(sys.exc_info())
-			print(desired_trace)
+			raise e
 
 	def send_out_buf_messages(self, only_register=False):
 		"""
@@ -150,17 +149,22 @@ class Stream:
 
 		:return:
 		"""
-		for node in self.nodes:
+		nodes_to_be_removed = []
+		for node in self.nodes.values():
+			print("Sending out buff messages - only reg : " + str(only_register) +'  ' +  str(node.get_server_address()))
+
 			if only_register:
 				if node.register:
 					try:
 						self.send_messages_to_node(node)
-					except Exception as e:
-						desired_trace = traceback.format_exc(sys.exc_info())
-						print(desired_trace)
+					except:
+						nodes_to_be_removed.append(node)
+
 			else:
 				try:
 					self.send_messages_to_node(node)
-				except Exception as e:
-					desired_trace = traceback.format_exc(sys.exc_info())
-					print(desired_trace)
+				except:
+					nodes_to_be_removed.append(node)
+
+		for node in nodes_to_be_removed:
+			self.nodes.pop(node.get_server_address())

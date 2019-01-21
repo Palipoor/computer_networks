@@ -14,12 +14,13 @@ class GraphNode:
 		self.left_child = None
 		self.right_child = None
 		self.is_on = True
+		self.alive = False
 
 	def get_children(self):
 		result = []
-		if not self.left_child:
+		if self.left_child:
 			result.append(self.left_child)
-		if not self.right_child:
+		if self.right_child:
 			result.append(self.right_child)
 		return result
 
@@ -105,18 +106,18 @@ class NetworkGraph:
 
 	def turn_off_subtree(self, subtree_root):
 		queue = [subtree_root]
-		while queue:
+		while len(queue) > 0:
 			head = queue[0]
 			queue = queue[1:]
-			head.turn_off_node()
+			self.turn_off_node(head)
 			queue = queue + head.get_children()
 
 	def turn_on_subtree(self, subtree_root):
 		queue = [subtree_root]
-		while queue:
+		while len(queue) > 0:
 			head = queue[0]
 			queue = queue[1:]
-			head.turn_on_node()
+			self.turn_on_node(head)
 			queue = queue + head.get_children()
 
 	def remove_node(self, node_address):
@@ -148,9 +149,12 @@ class NetworkGraph:
 		"""
 		# return success
 		new_node = self.nodes.get((ip, port), GraphNode((ip, port)))
+		new_node.alive = True
 		parent = self.nodes.get(father_address, None)
 		if parent == None:
 			return False
 		new_node.set_parent(new_node)
 		parent.add_child(new_node)
+		self.nodes.update({new_node.address: new_node})
 		self.turn_on_subtree(new_node)
+

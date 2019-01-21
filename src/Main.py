@@ -4,6 +4,8 @@ from src.Peer import Peer
 
 
 def is_ip_correct(ip):
+	if ip == '_':
+		return True
 	if len(ip) != 15:
 		return False
 
@@ -37,6 +39,7 @@ if __name__ == "__main__":
 		print('WRONG COMMAND')
 	else:
 		ip = parts_of_command[2]
+		if ip == '_': ip = '127.000.000.001'
 		port = parts_of_command[3]
 
 		if not is_ip_correct(ip) or not is_port_ok(port):
@@ -47,6 +50,7 @@ if __name__ == "__main__":
 					print('WRONG COMMAND')
 				else:
 					root_ip = parts_of_command[4]
+					if root_ip == '_': root_ip = '127.000.000.001'
 					root_port = parts_of_command[5]
 					if not is_ip_correct(root_ip) or not is_port_ok(root_port):
 						print('WRONG_COMMAND')
