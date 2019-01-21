@@ -35,6 +35,7 @@ class Node:
 		:return:
 		"""
 		for message in self.out_buff:
+
 			self.client_socket.send(message)
 
 	def add_message_to_out_buff(self, message):
