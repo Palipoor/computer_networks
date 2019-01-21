@@ -13,6 +13,7 @@ class GraphNode:
         self.parent = None
         self.left_child = None
         self.right_child = None
+        self.is_on = True
 
     def get_children(self):
         result = []
@@ -55,7 +56,8 @@ class NetworkGraph:
     def __init__(self, root):
         self.root = root
         root.alive = True
-        self.nodes = [root]
+        self.nodes = {root.address:root}
+
 
     def find_live_node(self, sender):
         """
@@ -79,7 +81,7 @@ class NetworkGraph:
         while True:
             head = queue[0]
             queue = queue[1:]
-            if head.can_have_child():
+            if head.can_have_child() and head.is_on:
                 return head
             queue = queue + head.get_children()
 
@@ -92,43 +94,43 @@ class NetworkGraph:
         :param port:
         :return:
         """
-        address = (ip,port)
-        queue = [self.root]
-        #FIXME off nodes
-        while queue:
-            head = queue[0]
-            queue = queue[1:]
-            if head.address == address:
-                return head
-            queue = queue + head.get_children()
-        return None
+        return self.nodes.get((ip,port), None)
 
     def turn_on_node(self, node_address):
-        pass
+        the_node = self.nodes.get(node_address, None)
+        if not the_node == None:
+            the_node.is_on = True
+
 
     def turn_off_node(self, node_address):
-        pass
-
-    def remove_node(self, node_address):
-        #returns None if hasn't find anything
-        if self.root.address == node_address:
-            temp = self.root
-            self.root = None
-            return temp
-        queue = [self.root]
+        the_node = self.nodes.get(node_address, None)
+        if not the_node == None:
+            the_node.is_on = False
+    
+    def turn_off_subtree(self, subtree_root):
+        queue = [subtree_root]
         while queue:
             head = queue[0]
             queue = queue[1:]
-            if head.right_child.address == node_address:
-                temp = head.right_child
-                head.right_child = None
-                return temp
-            if head.left_child.address == node_address:
-                temp = head.left_child
-                head.left_child = None
-                return temp
+            head.turn_off_node()
             queue = queue + head.get_children()
-        return None
+
+    def turn_on_subtree(self, subtree_root):
+        queue = [subtree_root]
+        while queue:
+            head = queue[0]
+            queue = queue[1:]
+            head.turn_on_node()
+            queue = queue + head.get_children()
+
+    def remove_node(self, node_address):
+        #returns the removed node
+        #returns None if hasn't find anything
+        removed = self.nodes.pop(node_address,None)
+        if not removed == None:
+            self.turn_off_subtree(removed)
+        return removed
+
 
     def add_node(self, ip, port, father_address):
         """
@@ -149,8 +151,12 @@ class NetworkGraph:
 
         :return:
         """
-        new_node = GraphNode((ip,port))
-        parent = self.find_node(ip, port)
+        #return success
+        new_node = self.nodes.get((ip,port),GraphNode((ip,port)))
+        parent = self.nodes.get((ip,port),None)
+        if parent == None:
+            return False
         new_node.set_parent(new_node)
         parent.add_child(new_node)
+        self.turn_on_subtree(new_node)
         
