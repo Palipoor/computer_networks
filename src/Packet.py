@@ -443,5 +443,3 @@ class PacketFactory:
 										  source_server_address[1], body)
 
 
-
-packet = PacketFactory.new_join_packet(('192.168.001.001', '92000'))

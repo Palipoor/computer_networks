@@ -18,12 +18,10 @@ class Node:
 		:param set_root:
 		:param set_register:
 		"""
-		#TODO close connection
-		#TODO try catch while initializing Node
 		self.server_ip = Node.parse_ip(server_address[0])
 		self.server_port = Node.parse_port(server_address[1])
 		self.register = set_register
-		self.client_socket = ClientSocket(self.server_ip, self.server_port,single_use=set_register)
+		self.client_socket = ClientSocket(self.server_ip, int(self.server_port),single_use=set_register)
 
 		self.out_buff = []
 
