@@ -37,7 +37,7 @@ class Stream:
 			queue.put(bytes('ACK', 'utf8'))
 			self._server_in_buf.append(data)
 
-		self.tcp_server = TCPServer(ip, port, read_callback=callback)
+		self.tcp_server = TCPServer(ip, int(port), read_callback=callback)
 		t = threading.Thread(target=self.tcp_server.run)
 		t.start()
 
@@ -109,8 +109,8 @@ class Stream:
 			self.nodes[address].add_message_to_out_buff(message)
 			print(f'Add message with type = {message.type} from  {message.get_source_server_address()}  to  {address} out buffer.')
 		except Exception as e:
-			desired_trace = traceback.format_exc(sys.exc_info())
-			print(desired_trace)
+			# desired_trace = traceback.format_exc(sys.exc_info())
+			print('Problem with sending message!' + message.body)
 		pass
 
 	def read_in_buf(self):
@@ -150,7 +150,6 @@ class Stream:
 
 		:return:
 		"""
-
 		for node in self.nodes:
 			if only_register:
 				if node.register:

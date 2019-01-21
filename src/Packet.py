@@ -191,7 +191,7 @@ class PacketType:
 
 
 VERSION = 1
-pack_header_format = 'h h i h h h h i '
+pack_header_format = 'h h i h h h h i ' # version - type - length - ip_1 - ip_2 - ip_3 - ip_4 - port
 
 
 class Packet:

@@ -1,12 +1,29 @@
+import threading
+
 from src.Peer import Peer
 
 
 def is_ip_correct(ip):
-	pass
+	if len(ip) != 15:
+		return False
+
+	ip_parts = ip.split('.')
+	try:
+		for part in ip_parts:
+			int(part)
+	except:
+		return False
+	return True
 
 
 def is_port_ok(port):
-	pass
+	if len(port) != 5:
+		return False
+	try:
+		int(port)
+	except:
+		return False
+	return True
 
 
 if __name__ == "__main__":
@@ -25,7 +42,7 @@ if __name__ == "__main__":
 		if not is_ip_correct(ip) or not is_port_ok(port):
 			print('WRONG_COMMAND')
 		else:
-			if command[1] == 'client':
+			if parts_of_command[1] == 'client':
 				if len(parts_of_command) != 6:
 					print('WRONG COMMAND')
 				else:
@@ -36,12 +53,14 @@ if __name__ == "__main__":
 					else:
 						client = Peer(ip, int(port), is_root=False,
 									  root_address=(root_ip, int(root_port)))
-						client.run()
-			elif command[1] == 'root':
+						threading.Thread(target = client.run).start()
+						client.start_user_interface()
+			elif parts_of_command[1] == 'root':
 				if len(parts_of_command) != 4:
 					print('WRONG COMMAND')
 				else:
 					root = Peer(ip, int(port), is_root=True)
-					root.run()
+					threading.Thread(target=root.run).start()
+					root.start_user_interface()
 			else:
 				print('WRONG COMMAND')

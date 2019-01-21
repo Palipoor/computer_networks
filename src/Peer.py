@@ -41,7 +41,8 @@ class Peer:
 		:type is_root: bool
 		:type root_address: tuple
 		"""
-		root_address = (root_address[0], str(root_address[1]))
+		if root_address:
+			root_address = (root_address[0], str(root_address[1]))
 		server_port = str(server_port)
 		self.is_root = is_root
 		self.is_client_connected = False
@@ -73,6 +74,7 @@ class Peer:
 
 		:return:
 		"""
+		print('Starting User Interface')
 		self.user_interface.run()
 
 	def handle_user_interface_buffer(self):
@@ -90,7 +92,7 @@ class Peer:
 		"""
 		for message in self.user_interface.buffer:
 			if message == 'Register':
-				reg_packet = PacketFactory.new_register_packet("REQ", self.address)
+				reg_packet = PacketFactory.new_register_packet("REQ", self.address, self.address)
 				self.send_packet(reg_packet, self.root_address)
 			elif message == 'Advertise':
 				advertise_packet = PacketFactory.new_advertise_packet(type="REQ", source_server_address=self.address)
@@ -133,16 +135,14 @@ class Peer:
 						packet = Packet(buf)
 						self.handle_packet(packet)
 
-					self.handle_user_interface_buffer()
 					self.stream.send_out_buf_messages()
-
 				else:
 					input_buffer = self.stream.read_in_buf()
 					for buf in input_buffer:
 						packet = Packet(buf)
 						if packet.type == PacketType.ADVERTISE:
 							self.__handle_advertise_packet(packet)
-
+				self.handle_user_interface_buffer()
 			else:
 				input_buffer = self.stream.read_in_buf()
 				for buf in input_buffer:
