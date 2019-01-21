@@ -179,7 +179,7 @@
 """
 from struct import *
 
-from src.tools.helpers import parse_ip
+from src.tools.helpers import ip_parts_integer, ip_int_parts_to_15byte
 
 
 class PacketType:
@@ -207,10 +207,8 @@ class Packet:
 		self.version, self.type, _, ip_1, ip_2, ip_3, ip_4, port, self.body = unpack(pack_format, buf)
 
 		self.body = self.body.decode('utf-8')
-		self.source_ip = str(ip_1).zfill(3) + '.' + str(ip_2).zfill(3) + '.' + str(ip_3).zfill(3) + '.' + str(
-			ip_4).zfill(3)
+		self.source_ip = ip_int_parts_to_15byte(ip_1, ip_2, ip_3, ip_4)
 		self.source_port = str(port).zfill(5)
-		self.header = str(self.version) + str(self.type) + str(self.length) + self.source_ip + self.source_port #FIXME problem of non-consistent storing addreses! check in peer too.
 
 	def __get_body_length(self, buf):
 		"""
@@ -220,12 +218,6 @@ class Packet:
 		"""
 		return unpack('i', buf[4:8])[0]
 
-	def get_header(self):
-		"""
-		:return: Packet header
-		:rtype: str
-		"""
-		return self.header
 
 	def get_version(self):
 		"""
@@ -268,7 +260,7 @@ class Packet:
 		"""
 		self.length = len(self.body)
 		pack_format = pack_header_format + f'{self.length}s'
-		ip_1, ip_2, ip_3, ip_4 = parse_ip(self.source_ip)
+		ip_1, ip_2, ip_3, ip_4 = ip_parts_integer(self.source_ip)
 		return pack(pack_format, self.version, self.type, self.length, ip_1, ip_2, ip_3, ip_4, int(self.source_port),
 					self.body.encode())
 
@@ -313,7 +305,7 @@ class PacketFactory:
 
 	@staticmethod
 	def __new_packet(version, type, length, source_ip, source_port, body):
-		ip_1, ip_2, ip_3, ip_4 = parse_ip(source_ip)
+		ip_1, ip_2, ip_3, ip_4 = ip_parts_integer(source_ip)
 		port = int(source_port)
 		packet_format = pack_header_format + f'{length}s'
 		body = bytes(body, encoding='utf-8')
@@ -450,3 +442,6 @@ class PacketFactory:
 		return PacketFactory.__new_packet(VERSION, PacketType.MESSAGE, len(body), source_server_address[0],
 										  source_server_address[1], body)
 
+
+
+packet = PacketFactory.new_join_packet(('192.168.001.001', '92000'))
