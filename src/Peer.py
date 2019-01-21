@@ -191,8 +191,7 @@ class Peer:
 				for peer in to_be_deleted:
 					self.nodes_for_root.pop(
 						peer)
-			# TODO remove or turn off?
-			# FIXME make sure that you will not advertise the nodes sub-tree in our GraphNode.
+					self.network_graph.remove_node(peer)
 			else:
 				if not self.client_is_waiting_for_helloback:
 					reunion_packet = PacketFactory.new_reunion_packet("REQ", self.address, [self.address])
@@ -292,7 +291,7 @@ class Peer:
 			2. The addresses which still haven't registered to the network can not request any peer discovery message.
 			3. Maybe it's not the first time that the source of the packet sends Advertise Request message. This will happen
 			   in rare situations like Reunion Failure. Pay attention, don't advertise the address to the packet sender
-			   sub-tree. #TODO what? :<
+			   sub-tree.
 			4. When an Advertise Response packet arrived update our Peer parent for sending Reunion Packets.
 
 		:param packet: Arrived register packet
@@ -304,8 +303,8 @@ class Peer:
 		if self.is_root:
 			sender_address = packet.get_source_server_address()
 			neighbour = self.__get_neighbour(sender_address)
-			if self.__check_registered(sender_address):
-				adv_packet = PacketFactory.new_advertise_packet("RES", self.address, neighbour=neighbour)
+			if self.__check_registered(sender_address) and neighbour is not None:
+				adv_packet = PacketFactory.new_advertise_packet("RES", self.address, neighbour=neighbour.address)
 				self.send_packet(adv_packet,sender_address)
 		elif packet.body.startswith('RES'):
 			reunion_thread = threading.Thread(target=self.run_reunion_daemon)
@@ -382,7 +381,8 @@ class Peer:
 		"""
 		if self.is_root:
 			sender_address = packet.get_first_address_hello_packet()
-			self.nodes_for_root[sender_address] = time.time()  # TODO turn it on
+			self.nodes_for_root[sender_address] = time.time()
+			self.network_graph.turn_on_node(sender_address)
 			self.send_helloback(packet)
 		else:
 			if packet.is_reunion_hello():
@@ -424,7 +424,7 @@ class Peer:
 		:param sender: Sender of the packet
 		:return: The specified neighbour for the sender; The format is like ('192.168.001.001', '05335').
 		"""
-		return tuple()  # TODO ask moeen about graph
+		return self.network_graph.find_live_node(sender)
 
 	def send_helloback(self, packet):
 		if not self.is_root:
