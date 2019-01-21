@@ -42,8 +42,8 @@ class Peer:
 		:type root_address: tuple
 		"""
 		if root_address:
-			root_address = (root_address[0], str(root_address[1]))
-		server_port = str(server_port)
+			root_address = (root_address[0], str(root_address[1]).zfill(5))
+		server_port = str(server_port).zfill(5)
 		self.is_root = is_root
 		self.is_client_connected = False
 		self.client_predecessor_address = tuple()
