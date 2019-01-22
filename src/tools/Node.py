@@ -21,10 +21,9 @@ class Node:
 		self.server_ip = Node.parse_ip(server_address[0])
 		self.server_port = Node.parse_port(server_address[1])
 		self.register = set_register
-		self.client_socket = ClientSocket(self.server_ip, int(self.server_port),single_use=False)
+		self.client_socket = ClientSocket(self.server_ip, int(self.server_port), single_use=False)
 
 		self.out_buff = []
-
 
 	def send_message(self):
 		"""
@@ -33,8 +32,12 @@ class Node:
 		:return:
 		"""
 		for message in self.out_buff:
-			self.client_socket.send(message)
-
+			try:
+				self.client_socket.send(message)
+			except Exception as e:
+				print("Seems like the socket is closed for " + str(self.get_server_address()))
+				self.out_buff.clear()
+				raise e
 		self.out_buff.clear()
 
 	def add_message_to_out_buff(self, message):

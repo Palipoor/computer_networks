@@ -138,7 +138,12 @@ class Peer:
 						packet = Packet(buf)
 						self.handle_packet(packet)
 					self.stream.clear_in_buff()
-					self.stream.send_out_buf_messages()
+					unavailable_addreses = self.stream.send_out_buf_messages()
+					if self.root_address in unavailable_addreses:
+						self.is_client_connected = False
+					for add in unavailable_addreses:
+						if add in self.successors_address:
+							self.successors_address.remove(add)
 				else:
 					input_buffer = self.stream.read_in_buf()
 					for buf in input_buffer:
@@ -155,7 +160,10 @@ class Peer:
 
 				self.stream.clear_in_buff()
 				self.handle_user_interface_buffer()
-				self.stream.send_out_buf_messages()
+				unavailable_addreses = self.stream.send_out_buf_messages()
+				for add in unavailable_addreses:
+					if add in self.successors_address:
+						self.successors_address.remove(add)
 			time.sleep(2)
 
 	def run_reunion_daemon(self):
@@ -232,7 +240,8 @@ class Peer:
 		:return:
 		"""
 		broadcast_packet = self.change_header(broadcast_packet)
-		print('Going to broadcast a Packet! type: ' + str(broadcast_packet.type))
+		print('Going to broadcast a Packet! type: ' + str(broadcast_packet.type) + ' body ' + str(
+			broadcast_packet.get_body()))
 		if self.is_root:
 			for address in self.successors_address:
 				self.stream.add_message_to_out_buff(address, broadcast_packet)
@@ -337,6 +346,7 @@ class Peer:
 			join_pckt = PacketFactory.new_join_packet(self.address)
 			self.client_predecessor_address = (packet.body[-20:-5], packet.body[-5:])
 			print("I've found a father! " + str(self.client_predecessor_address))
+			self.stream.add_node(self.client_predecessor_address)
 			self.send_packet(join_pckt, self.client_predecessor_address)
 			self.is_client_connected = True
 		else:
@@ -408,6 +418,7 @@ class Peer:
 		"""
 		if self.is_root:
 			sender_address = packet.get_first_address_hello_packet()
+			print('Hello from ' + str(sender_address))
 			self.nodes_for_root[sender_address] = time.time()
 			self.network_graph.turn_on_node(sender_address)
 			self.send_helloback(packet)
@@ -424,6 +435,7 @@ class Peer:
 					packet.body = 'REQ' + str(new_number_of_elements) + packet.body[5:]
 					self.send_broadcast_packet(packet)
 				else:
+					print('I received hello back!')
 					self.client_is_waiting_for_helloback = False
 
 	def __handle_join_packet(self, packet):
@@ -438,6 +450,7 @@ class Peer:
 		"""
 		address = packet.get_source_server_address()
 		self.successors_address.append(address)
+		self.stream.add_node(address)
 
 	def __get_neighbour(self, sender):
 		"""

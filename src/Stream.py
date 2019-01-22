@@ -1,6 +1,4 @@
 from src.tools.simpletcp.tcpserver import TCPServer
-import traceback
-import sys
 from src.tools.Node import Node
 import threading
 
@@ -139,8 +137,6 @@ class Stream:
 		try:
 			node.send_message()
 		except Exception as e:
-			print("Error sending message to node " + str(node.get_server_address()))
-			node.out_buff.clear()
 			raise e
 
 	def send_out_buf_messages(self, only_register=False):
@@ -151,7 +147,6 @@ class Stream:
 		"""
 		nodes_to_be_removed = []
 		for node in self.nodes.values():
-			print("Sending out buff messages - only reg : " + str(only_register) +'  ' +  str(node.get_server_address()))
 
 			if only_register:
 				if node.register:
@@ -168,3 +163,5 @@ class Stream:
 
 		for node in nodes_to_be_removed:
 			self.nodes.pop(node.get_server_address())
+
+		return [n.get_server_address() for n in nodes_to_be_removed]
