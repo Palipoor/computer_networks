@@ -51,8 +51,9 @@ class Peer:
 		self.client_is_waiting_for_helloback = False
 		self.register_node = None
 		self.client_reunion_timeout = False
-		self.client_timeout_threshold = 20
-		self.root_timeout_threshold = 20
+		# TODO increase
+		self.client_timeout_threshold = 10
+		self.root_timeout_threshold = 10
 		self.client_last_hello_time = 0
 		self.nodes_for_root = {}  # {(address) : last_time_hello_came}
 		self.address = (server_ip, server_port)
@@ -133,11 +134,14 @@ class Peer:
 		while True:
 			if not self.is_root:
 				if self.is_client_connected:
+					print("happily connexted")
 					input_buffer = self.stream.read_in_buf()
 					for buf in input_buffer:
 						packet = Packet(buf)
+						print('gonna print a received packet! ')
+						print(packet.__dict__)
 						self.handle_packet(packet)
-					self.stream.clear_in_buff()
+					self.stream.clear_in_buff()  # TODO buffer messages that use unvailable addreses
 					unavailable_addreses = self.stream.send_out_buf_messages()
 					if self.root_address in unavailable_addreses:
 						self.is_client_connected = False
@@ -156,6 +160,8 @@ class Peer:
 				input_buffer = self.stream.read_in_buf()
 				for buf in input_buffer:
 					packet = Packet(buf)
+					print('gonna print a received packet! ')
+					print(packet.__dict__)
 					self.handle_packet(packet)
 
 				self.stream.clear_in_buff()
@@ -163,6 +169,7 @@ class Peer:
 				unavailable_addreses = self.stream.send_out_buf_messages()
 				for add in unavailable_addreses:
 					if add in self.successors_address:
+						print(f'Removing {add} from my successors! :( ')
 						self.successors_address.remove(add)
 			time.sleep(2)
 
@@ -246,17 +253,22 @@ class Peer:
 		broadcast_packet = self.change_header(broadcast_packet)
 		print('Going to broadcast a Packet! type: ' + str(broadcast_packet.type) + ' body ' + str(
 			broadcast_packet.get_body()))
-		if self.is_root:
+		if self.is_root and broadcast_packet.type != PacketType.REUNION:
 			for address in self.successors_address:
 				self.stream.add_message_to_out_buff(address, broadcast_packet)
+		elif self.is_root and broadcast_packet.type == PacketType.REUNION:
+			dest_addr = broadcast_packet.body[-20:]
+			dest_addr = (dest_addr[:15], dest_addr[15:])
+			if dest_addr in self.successors_address:
+				print('Finally sending hello back to ' + str(dest_addr))
+				self.stream.add_message_to_out_buff(dest_addr, broadcast_packet)
+		elif broadcast_packet.type == PacketType.MESSAGE:
+			all_addreses = [self.client_predecessor_address] + self.successors_address
+			for address in all_addreses:
+				self.stream.add_message_to_out_buff(address,
+													broadcast_packet)
 		else:
-			if broadcast_packet.type == PacketType.MESSAGE:
-				all_addreses = [self.client_predecessor_address] + self.successors_address
-				for address in all_addreses:
-					self.stream.add_message_to_out_buff(address,
-														broadcast_packet)
-			else:
-				return
+			return
 
 	def handle_packet(self, packet):
 		"""
@@ -272,7 +284,7 @@ class Peer:
 
 		"""
 
-		print('Received a packet with type : ' + str(packet.type))
+		print(f'Received a packet with type {packet.type} from {packet.source_ip},  {packet.source_port} ')
 		if packet.type == PacketType.REGISTER:
 			self.__handle_register_packet(packet)
 		elif packet.type == PacketType.MESSAGE:
@@ -392,6 +404,7 @@ class Peer:
 		self.send_broadcast_packet(packet)
 
 	def __handle_reunion_packet(self, packet):
+
 		"""
 		In this function we should handle Reunion packet was just arrived.
 
@@ -422,12 +435,10 @@ class Peer:
 			self.send_helloback(packet)
 		else:
 			if packet.is_reunion_hello():
+				print('Forwarding Hello Packet from ' + str(packet.get_first_address_hello_packet()))
 				self.forward_hello(packet)
 			else:
 				if not self.helloback_is_mine(packet):
-					packet.body = packet.body[:-20]
-					new_number_of_elements = int(packet.body[3:5]) - 1
-					packet.body = 'REQ' + str(new_number_of_elements).zfill(2) + packet.body[5:]
 					self.forward_helloback(packet)
 				else:
 					print('I received hello back!')
@@ -444,7 +455,9 @@ class Peer:
 		:return:
 		"""
 		address = packet.get_source_server_address()
-		self.successors_address.append(address)
+		print(f'received join from {address}')
+		if address not in self.successors_address:
+			self.successors_address.append(address)
 		self.stream.add_node(address)
 
 	def __get_neighbour(self, sender):
@@ -464,22 +477,16 @@ class Peer:
 		if not self.is_root:
 			return
 		print('Sending Hello back')
-		list_of_addreses = packet.body[5:]
-		new_list = []
-		for substring in divide_string(list_of_addreses, int(packet.body[3:5])):
-			new_list.append(substring)
-
-		new_list_of_addreses = ''.join(new_list)
-
-		packet.body = packet.body[:5] + new_list_of_addreses
 		packet.body = 'RES' + packet.body[3:]
-
+		packet.source_ip = self.address[0]
+		packet.source_port = self.address[1]
+		packet = Packet(packet.get_buf())
 		self.send_broadcast_packet(packet)
 
 	def send_advertise_packet(self, advertise_packet):
 		print('Sending advertise packet!')
-		advertise_packet = self.change_header(advertise_packet)
 		self.send_packet(advertise_packet, self.root_address)
+		self.stream.send_out_buf_messages(only_register=True)
 
 	def __check_neighbour(self, address):
 		"""
@@ -495,11 +502,11 @@ class Peer:
 		return address == self.client_predecessor_address or address in self.successors_address
 
 	def helloback_is_mine(self, packet):
-		latest_address = (packet.body[-20:-15], packet.body[-15:])
-		return latest_address == self.address
+		first_address = packet.get_first_address_hello_packet()
+		return first_address == self.address
 
 	def change_header(self, packet):
-		packet.source_ip, new_source_port = self.address[0], self.address[1]
+		packet.source_ip, packet.source_port = self.address[0], self.address[1]
 		packet = Packet(packet.get_buf())
 		return packet
 
@@ -512,17 +519,25 @@ class Peer:
 			new_number_of_elements = int(packet.body[3:5]) + 1
 			packet.body = 'REQ' + str(new_number_of_elements).zfill(2) + packet.body[5:]
 			packet = Packet(packet.get_buf())
+			print("in forward hello")
+			print(packet.__dict__)
 			self.stream.add_message_to_out_buff(self.client_predecessor_address, packet)
 
 	def forward_helloback(self, packet):
+		print("in forward_helloback")
+		print("packet was : ", packet.__dict__)
 		packet = self.change_header(packet)
 		packet.body = packet.body[:-20]
 		number_of_entries = str(int(packet.body[3:5]) - 1).zfill(2)
 		packet.body = 'RES' + number_of_entries + packet.body[5:]
 		packet = Packet(packet.get_buf())
-		fw_address = packet.body[:-20]
+		fw_address = packet.body[-20:]
 		fw_address = (fw_address[:15], fw_address[15:])
+		print('packet is : ')
+		print(packet.__dict__)
+		print(self.successors_address)
 		if fw_address in self.successors_address:
+			print("yohoooo")
 			self.stream.add_message_to_out_buff(fw_address, packet)
 		else:
 			return

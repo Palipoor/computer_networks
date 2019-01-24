@@ -109,7 +109,7 @@ class Stream:
 		except Exception as e:
 			# desired_trace = traceback.format_exc(sys.exc_info())
 			print('Problem with sending message!' + message.body)
-		pass
+
 
 	def read_in_buf(self):
 		"""

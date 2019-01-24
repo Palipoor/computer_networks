@@ -75,12 +75,18 @@ class NetworkGraph:
 		:return: Best neighbour for sender.
 		:rtype: GraphNode
 		"""
-		if sender in self.nodes and self.nodes[sender].is_on:
-			return None
+		# if sender in self.nodes and self.nodes[sender].is_on:
+		# 	return
+		#TODO what is happening
 		queue = [self.root]
 		while True:
 			head = queue[0]
 			queue = queue[1:]
+
+			# print(head.__dict__)
+			# print(head.can_have_child())
+			# print(head.is_on)
+			# print("_____________")
 			if head.can_have_child() and head.is_on:
 				return head
 			queue = queue + head.get_children()
@@ -125,6 +131,14 @@ class NetworkGraph:
 		# returns None if hasn't find anything
 		removed = self.nodes.pop(node_address, None)
 		if not removed is None:
+			if removed.parent.left_child:
+				if removed.parent.left_child.address == node_address :
+					removed.parent.left_child = None
+			if removed.parent.right_child:
+				if removed.parent.right_child.address == node_address :
+					removed.parent.right_child = None
+
+
 			self.turn_off_subtree(removed)
 		return removed
 

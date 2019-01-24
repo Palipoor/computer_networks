@@ -342,7 +342,7 @@ class PacketFactory:
 		:rtype Packet
 		"""
 		source_ip, source_port = source_address
-		number_of_entries = str(len(nodes_array))
+		number_of_entries = str(len(nodes_array)).zfill(2)
 		addresses = [ip + port for ip, port in nodes_array]
 
 		if type == 'REQ':
