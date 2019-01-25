@@ -79,16 +79,10 @@ class NetworkGraph:
 		# 	return
 		queue = [self.root]
 		while True:
-			print('in find alive node! ')
-			print(queue)
+
 			head = queue[0]
-			print('head is' + str(head.__dict__))
 			queue = queue[1:]
 
-			# print(head.__dict__)
-			# print(head.can_have_child())
-			# print(head.is_on)
-			# print("_____________")
 			if head.can_have_child() and head.is_on:
 				return head
 			queue = queue + head.get_children()
@@ -166,11 +160,14 @@ class NetworkGraph:
 		"""
 		# return success
 		new_node = self.nodes.get((ip, port), GraphNode((ip, port)))
+
 		new_node.alive = True
 		parent = self.nodes.get(father_address, None)
 		if parent == None:
 			return False
+
 		new_node.set_parent(parent)
 		parent.add_child(new_node)
 		self.nodes.update({new_node.address: new_node})
 		self.turn_on_subtree(new_node)
+		return True

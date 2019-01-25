@@ -134,7 +134,6 @@ class Peer:
 		while True:
 			if not self.is_root:
 				if self.is_client_connected:
-					print("happily connexted")
 					input_buffer = self.stream.read_in_buf()
 					for buf in input_buffer:
 						packet = Packet(buf)
@@ -169,7 +168,6 @@ class Peer:
 				unavailable_addreses = self.stream.send_out_buf_messages()
 				for add in unavailable_addreses:
 					if add in self.successors_address:
-						print(f'Removing {add} from my successors! :( ')
 						self.successors_address.remove(add)
 			time.sleep(2)
 
@@ -215,7 +213,8 @@ class Peer:
 					self.nodes_for_root.pop(
 						peer_address)
 					self.network_graph.remove_node(peer_address)
-					self.successors_address.remove(peer_address)
+					if peer_address in self.successors_address:
+						self.successors_address.remove(peer_address)
 			else:
 				if self.client_predecessor_address:
 					if not self.client_is_waiting_for_helloback:
@@ -253,11 +252,11 @@ class Peer:
 		"""
 		sender_address = broadcast_packet.get_source_server_address()
 		broadcast_packet = self.change_header(broadcast_packet)
-		print('Going to broadcast a Packet! type: ' + str(broadcast_packet.type) + ' body ' + str(
-			broadcast_packet.get_body()))
+
 		if self.is_root and broadcast_packet.type != PacketType.REUNION:
 			for address in self.successors_address:
-				self.stream.add_message_to_out_buff(address, broadcast_packet)
+				if address != sender_address:
+					self.stream.add_message_to_out_buff(address, broadcast_packet)
 		elif self.is_root and broadcast_packet.type == PacketType.REUNION:
 			dest_addr = broadcast_packet.body[-20:]
 			dest_addr = (dest_addr[:15], dest_addr[15:])
@@ -268,6 +267,8 @@ class Peer:
 			all_addreses = [self.client_predecessor_address] + self.successors_address
 			for address in all_addreses:
 				if address != sender_address:
+					print('Going to broadcast a Message! ' + ' with body ' + str(
+						broadcast_packet.get_body()))
 					self.stream.add_message_to_out_buff(address,
 														broadcast_packet)
 		else:
@@ -286,8 +287,6 @@ class Peer:
 		:type packet Packet
 
 		"""
-
-		print(f'Received a packet with type {packet.type} from {packet.source_ip},  {packet.source_port} ')
 		if packet.type == PacketType.REGISTER:
 			self.__handle_register_packet(packet)
 		elif packet.type == PacketType.MESSAGE:
@@ -349,7 +348,7 @@ class Peer:
 			neighbour = self.__get_neighbour(sender_address)
 			self.network_graph.add_node(sender_address[0], sender_address[1], neighbour.address)
 			print("Someone has requested a neighbour")
-			print(str(neighbour.address))
+			print(f'gave {neighbour.address} to {sender_address} as a neighbour')
 			if self.__check_registered(sender_address) and neighbour is not None:
 				adv_packet = PacketFactory.new_advertise_packet("RES", self.address, neighbour=neighbour.address)
 				self.send_packet(adv_packet, sender_address)
@@ -517,18 +516,15 @@ class Peer:
 		if is_mine:
 			self.stream.add_message_to_out_buff(self.client_predecessor_address, packet)
 		else:
+			print('Forwarding a Hello that is not mine')
 			packet = self.change_header(packet)
 			packet.body += str(self.address[0]) + str(self.address[1])
 			new_number_of_elements = int(packet.body[3:5]) + 1
 			packet.body = 'REQ' + str(new_number_of_elements).zfill(2) + packet.body[5:]
 			packet = Packet(packet.get_buf())
-			print("in forward hello")
-			print(packet.__dict__)
 			self.stream.add_message_to_out_buff(self.client_predecessor_address, packet)
 
 	def forward_helloback(self, packet):
-		print("in forward_helloback")
-		print("packet was : ", packet.__dict__)
 		packet = self.change_header(packet)
 		packet.body = packet.body[:-20]
 		number_of_entries = str(int(packet.body[3:5]) - 1).zfill(2)
@@ -536,11 +532,7 @@ class Peer:
 		packet = Packet(packet.get_buf())
 		fw_address = packet.body[-20:]
 		fw_address = (fw_address[:15], fw_address[15:])
-		print('packet is : ')
-		print(packet.__dict__)
-		print(self.successors_address)
 		if fw_address in self.successors_address:
-			print("yohoooo")
 			self.stream.add_message_to_out_buff(fw_address, packet)
 		else:
 			return

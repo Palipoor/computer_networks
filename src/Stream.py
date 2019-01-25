@@ -153,12 +153,14 @@ class Stream:
 					try:
 						self.send_messages_to_node(node)
 					except:
+						print('could not send to ' + str(node.get_server_address()))
 						nodes_to_be_removed.append(node)
 
 			else:
 				try:
 					self.send_messages_to_node(node)
 				except:
+					print('could not send to ' + str(node.get_server_address()))
 					nodes_to_be_removed.append(node)
 
 		for node in nodes_to_be_removed:
