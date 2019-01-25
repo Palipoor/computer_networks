@@ -204,17 +204,18 @@ class Peer:
 			if self.is_root:
 				now = time.time()
 				to_be_deleted = []
-				for peer, latest_reunion_msg in self.nodes_for_root.items():
+				for peer_address, latest_reunion_msg in self.nodes_for_root.items():
 					passed_time = now - latest_reunion_msg
 					if passed_time > self.root_timeout_threshold:
-						print("I've waited more than enough! where is my hello from " + str(peer))
-						to_be_deleted.append(peer)
-						self.network_graph.turn_off_node(peer)
+						print("I've waited more than enough! where is my hello from " + str(peer_address))
+						to_be_deleted.append(peer_address)
+						self.network_graph.turn_off_node(peer_address)
 
-				for peer in to_be_deleted:
+				for peer_address in to_be_deleted:
 					self.nodes_for_root.pop(
-						peer)
-					self.network_graph.remove_node(peer)
+						peer_address)
+					self.network_graph.remove_node(peer_address)
+					self.successors_address.remove(peer_address)
 			else:
 				if self.client_predecessor_address:
 					if not self.client_is_waiting_for_helloback:
@@ -250,6 +251,7 @@ class Peer:
 
 		:return:
 		"""
+		sender_address = broadcast_packet.get_source_server_address()
 		broadcast_packet = self.change_header(broadcast_packet)
 		print('Going to broadcast a Packet! type: ' + str(broadcast_packet.type) + ' body ' + str(
 			broadcast_packet.get_body()))
@@ -265,8 +267,9 @@ class Peer:
 		elif broadcast_packet.type == PacketType.MESSAGE:
 			all_addreses = [self.client_predecessor_address] + self.successors_address
 			for address in all_addreses:
-				self.stream.add_message_to_out_buff(address,
-													broadcast_packet)
+				if address != sender_address:
+					self.stream.add_message_to_out_buff(address,
+														broadcast_packet)
 		else:
 			return
 
@@ -456,7 +459,7 @@ class Peer:
 		"""
 		address = packet.get_source_server_address()
 		print(f'received join from {address}')
-		if address not in self.successors_address:
+		if address not in self.successors_address and len(self.successors_address) < 2:
 			self.successors_address.append(address)
 		self.stream.add_node(address)
 

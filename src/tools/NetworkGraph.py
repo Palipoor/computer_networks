@@ -77,10 +77,12 @@ class NetworkGraph:
 		"""
 		# if sender in self.nodes and self.nodes[sender].is_on:
 		# 	return
-		#TODO what is happening
 		queue = [self.root]
 		while True:
+			print('in find alive node! ')
+			print(queue)
 			head = queue[0]
+			print('head is' + str(head.__dict__))
 			queue = queue[1:]
 
 			# print(head.__dict__)
@@ -129,17 +131,18 @@ class NetworkGraph:
 	def remove_node(self, node_address):
 		# returns the removed node
 		# returns None if hasn't find anything
+		print('gonna remove ' + str(node_address))
 		removed = self.nodes.pop(node_address, None)
 		if not removed is None:
 			if removed.parent.left_child:
-				if removed.parent.left_child.address == node_address :
+				if removed.parent.left_child.address == node_address:
 					removed.parent.left_child = None
 			if removed.parent.right_child:
-				if removed.parent.right_child.address == node_address :
+				if removed.parent.right_child.address == node_address:
 					removed.parent.right_child = None
 
-
 			self.turn_off_subtree(removed)
+
 		return removed
 
 	def add_node(self, ip, port, father_address):
@@ -167,8 +170,7 @@ class NetworkGraph:
 		parent = self.nodes.get(father_address, None)
 		if parent == None:
 			return False
-		new_node.set_parent(new_node)
+		new_node.set_parent(parent)
 		parent.add_child(new_node)
 		self.nodes.update({new_node.address: new_node})
 		self.turn_on_subtree(new_node)
-
